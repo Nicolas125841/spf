@@ -61,12 +61,11 @@ func NewChecker() *Checker {
 var DefaultChecker *Checker
 
 // ValidateSPF checks SPF policy for a message using both smtp.mailfrom and smtp.helo.
-func ValidateSPF(ctx context.Context, ip net.IP, record, domain string) (ResultType, string) {
+func ValidateSPF(ctx context.Context, ip net.IP, record, domain string) Result {
 	if DefaultChecker == nil {
 		DefaultChecker = NewChecker()
 	}
-	result := DefaultChecker.CheckHost(ctx, ip, record, domain, "", "")
-	return result.Type, result.Explanation
+	return DefaultChecker.CheckHost(ctx, ip, record, dns.Fqdn(domain), domain, domain)
 }
 
 // Check checks SPF policy for a message using both smtp.mailfrom and smtp.helo.
@@ -165,24 +164,23 @@ func (c *Checker) checkHostCore(ctx context.Context, result *Result, record, dom
 		result.sender = "postmaster" + result.sender
 	}
 
-	// 4.6.4.  DNS Lookup Limits (RFC 7208)
-	//
-	//  Some mechanisms and modifiers (collectively, "terms") cause DNS
-	//  queries at the time of evaluation, and some do not.  The following
-	//  terms cause DNS queries: the "include", "a", "mx", "ptr", and
-	//  "exists" mechanisms, and the "redirect" modifier.  SPF
-	//  implementations MUST limit the total number of those terms to 10
-	//  during SPF evaluation, to avoid unreasonable load on the DNS.  If
-	//  this limit is exceeded, the implementation MUST return "permerror".
-	result.DNSQueries++
-	if result.DNSQueries > c.DNSLimit {
-		result.Error = fmt.Errorf("limit of %d dns queries exceeded", c.DNSLimit)
-		return Permerror
-	}
-
 	var err error
 	var resultType ResultType
 	if record == "" {
+		// 4.6.4.  DNS Lookup Limits (RFC 7208)
+		//
+		//  Some mechanisms and modifiers (collectively, "terms") cause DNS
+		//  queries at the time of evaluation, and some do not.  The following
+		//  terms cause DNS queries: the "include", "a", "mx", "ptr", and
+		//  "exists" mechanisms, and the "redirect" modifier.  SPF
+		//  implementations MUST limit the total number of those terms to 10
+		//  during SPF evaluation, to avoid unreasonable load on the DNS.  If
+		//  this limit is exceeded, the implementation MUST return "permerror".
+		result.DNSQueries++
+		if result.DNSQueries > c.DNSLimit {
+			result.Error = fmt.Errorf("limit of %d dns queries exceeded", c.DNSLimit)
+			return Permerror
+		}
 		record, resultType, err = c.getSPFRecord(ctx, domain)
 		if err != nil {
 			result.Error = err

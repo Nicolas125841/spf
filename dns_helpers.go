@@ -3,11 +3,12 @@ package spf
 import (
 	"context"
 	"fmt"
-	"github.com/miekg/dns"
 	"net"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/miekg/dns"
 )
 
 var spfPrefixRe = regexp.MustCompile(`(?i)^v=spf1(?: |$)`)
