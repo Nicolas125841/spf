@@ -1,8 +1,6 @@
-module github.com/wttw/spf
+module github.com/Nicolas125841/spf
 
-go 1.22.0
-
-toolchain go1.23.2
+go 1.23
 
 require (
 	github.com/alvaroloes/enumer v1.1.2

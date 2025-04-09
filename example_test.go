@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/wttw/spf"
+	"github.com/Nicolas125841/spf"
 )
 
 func ExampleCheck() {
