@@ -1,30 +1,30 @@
 /*
 spf is a commandline tool for evaluating spf records.
 
- spf -ip 8.8.8.8 -from steve@aol.com
+	spf -ip 8.8.8.8 -from steve@aol.com
 
- Result: softfail
- Error:  <nil>
- Explanation:
+	Result: softfail
+	Error:  <nil>
+	Explanation:
 
 If run with the -trace flag it will show the steps take to check the spf
 record, and if the -dns flag is added it will show all the DNS queries
 involved.
 
- spf -help
- Usage of spf:
-   -dns
-     	show dns queries
-   -from string
-     	821.From address
-   -helo string
-     	domain used in 821.HELO
-   -ip string
-     	ip address from which the message is sent
-   -mechanisms
-    	show details about each mechanism
-   -trace
-     	show evaluation of record
+	spf -help
+	Usage of spf:
+	  -dns
+	    	show dns queries
+	  -from string
+	    	821.From address
+	  -helo string
+	    	domain used in 821.HELO
+	  -ip string
+	    	ip address from which the message is sent
+	  -mechanisms
+	   	show details about each mechanism
+	  -trace
+	    	show evaluation of record
 */
 package main
 
@@ -32,10 +32,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/logrusorgru/aurora"
-	"github.com/mattn/go-colorable"
-	"github.com/mattn/go-isatty"
-	"github.com/miekg/dns"
 	"io"
 	"log"
 	"net"
@@ -43,10 +39,13 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/wttw/spf"
+	"github.com/logrusorgru/aurora"
+	"github.com/mattn/go-colorable"
+	"github.com/mattn/go-isatty"
+	"github.com/miekg/dns"
+
+	"github.com/Nicolas125841/spf"
 )
-
-
 
 func main() {
 	var ip, from, domain, helo string

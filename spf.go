@@ -8,8 +8,9 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/miekg/dns"
 	"strings"
+
+	"github.com/miekg/dns"
 )
 
 // DefaultDNSLimit is the maximum number of SPF terms that require DNS resolution to
@@ -79,7 +80,7 @@ func (c *Checker) SPF(ctx context.Context, ip net.IP, mailFrom string, helo stri
 			helo:   helo,
 			c:      c,
 		}
-		r := c.checkHost(ctx, &result, dns.Fqdn(helo), false, false)
+		r := c.checkHost(ctx, &result, "", dns.Fqdn(helo), false, false)
 		result.Type = r
 		if r != None && r != Neutral {
 			result.UsedHelo = true
@@ -95,14 +96,14 @@ func (c *Checker) SPF(ctx context.Context, ip net.IP, mailFrom string, helo stri
 			c:      c,
 		}
 		at := strings.LastIndex(mailFrom, "@")
-		r := c.checkHost(ctx, &result, dns.Fqdn(mailFrom[at+1:]), false, false)
+		r := c.checkHost(ctx, &result, "", dns.Fqdn(mailFrom[at+1:]), false, false)
 		result.Type = r
 	}
 	return result
 }
 
 // CheckHost implements the SPF check_host() function for a given domain.
-func (c *Checker) CheckHost(ctx context.Context, ip net.IP, domain, sender string, helo string) Result {
+func (c *Checker) CheckHost(ctx context.Context, ip net.IP, record, domain, sender string, helo string) Result {
 	result := Result{
 		Type:   None,
 		ip:     ip,
@@ -111,15 +112,15 @@ func (c *Checker) CheckHost(ctx context.Context, ip net.IP, domain, sender strin
 		c:      c,
 	}
 
-	result.Type = c.checkHost(ctx, &result, domain, false, false)
+	result.Type = c.checkHost(ctx, &result, record, domain, false, false)
 	return result
 }
 
 // Anything not 7 bit ascii or any control character
 var invalidCharRe = regexp.MustCompile(`[^ -~]`)
 
-func (c *Checker) checkHost(ctx context.Context, result *Result, domain string, include bool, redirect bool) ResultType {
-	r := c.checkHostCore(ctx, result, domain, include, redirect)
+func (c *Checker) checkHost(ctx context.Context, result *Result, record, domain string, include bool, redirect bool) ResultType {
+	r := c.checkHostCore(ctx, result, record, domain, include, redirect)
 	if c.Hook != nil {
 		c.Hook.RecordResult(domain, result)
 	}
@@ -127,7 +128,7 @@ func (c *Checker) checkHost(ctx context.Context, result *Result, domain string, 
 }
 
 // checkHost does the actual RFC 7208 check_host work
-func (c *Checker) checkHostCore(ctx context.Context, result *Result, domain string, include bool, redirect bool) ResultType {
+func (c *Checker) checkHostCore(ctx context.Context, result *Result, record, domain string, include bool, redirect bool) ResultType {
 	// 4.3 Initial Processing (RFC 7208)
 	//  If the <domain> is malformed (e.g., label longer than 63 characters,
 	//	zero-length label not at the end, etc.) or is not a multi-label
@@ -169,11 +170,17 @@ func (c *Checker) checkHostCore(ctx context.Context, result *Result, domain stri
 		result.Error = fmt.Errorf("limit of %d dns queries exceeded", c.DNSLimit)
 		return Permerror
 	}
-	record, resultType, err := c.getSPFRecord(ctx, domain)
-	if err != nil {
-		result.Error = err
-		return resultType
+
+	var err error
+	var resultType ResultType
+	if record == "" {
+		record, resultType, err = c.getSPFRecord(ctx, domain)
+		if err != nil {
+			result.Error = err
+			return resultType
+		}
 	}
+
 	if c.Hook != nil {
 		c.Hook.Record(record, domain)
 	}
@@ -245,7 +252,7 @@ func (c *Checker) checkHostCore(ctx context.Context, result *Result, domain stri
 			return Permerror
 		}
 
-		return c.checkHost(ctx, result, dns.Fqdn(target), false, true)
+		return c.checkHost(ctx, result, "", dns.Fqdn(target), false, true)
 	}
 	return Neutral
 }
@@ -266,11 +273,12 @@ type SPFRecord struct {
 	OtherModifiers []string
 }
 
-//   modifier         = redirect / explanation / unknown-modifier
-//   unknown-modifier = name "=" macro-string
-//                      ; where name is not any known modifier
+// modifier         = redirect / explanation / unknown-modifier
+// unknown-modifier = name "=" macro-string
 //
-//   name             = ALPHA *( ALPHA / DIGIT / "-" / "_" / "." )
+//	; where name is not any known modifier
+//
+// name             = ALPHA *( ALPHA / DIGIT / "-" / "_" / "." )
 var modifierRe = regexp.MustCompile(`^((?i)[a-z][a-z0-9_.-]*)=(.*)`)
 
 // ParseSPF parses the text of an SPF record.

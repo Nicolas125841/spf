@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/miekg/dns"
 	"net"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/miekg/dns"
 )
 
 // Mechanism holds an SPF mechanism
@@ -43,7 +44,7 @@ func (m MechanismAll) Evaluate(_ context.Context, _ *Result, _ string) (ResultTy
 }
 
 func (m MechanismAll) String() string {
-	return mechanismString(m.Qualifier, "all","", net.IPMask{}, net.IPMask{})
+	return mechanismString(m.Qualifier, "all", "", net.IPMask{}, net.IPMask{})
 }
 
 // 5.2.  "include"
@@ -86,7 +87,7 @@ func (m MechanismInclude) Evaluate(ctx context.Context, result *Result, domain s
 	if !validDomainName(dom) {
 		return None, fmt.Errorf("invalid hostname '%s'", dom)
 	}
-	includeResult := result.c.checkHost(ctx, result, dns.Fqdn(dom), true, false)
+	includeResult := result.c.checkHost(ctx, result, "", dns.Fqdn(dom), true, false)
 
 	switch includeResult {
 	case Pass:
@@ -102,7 +103,7 @@ func (m MechanismInclude) Evaluate(ctx context.Context, result *Result, domain s
 }
 
 func (m MechanismInclude) String() string {
-	return mechanismString(m.Qualifier, "include",m.DomainSpec, net.IPMask{}, net.IPMask{})
+	return mechanismString(m.Qualifier, "include", m.DomainSpec, net.IPMask{}, net.IPMask{})
 }
 
 // 5.3.  "a"
@@ -193,7 +194,6 @@ type MechanismMX struct {
 	Mask6      net.IPMask
 }
 
-
 func (m MechanismMX) Evaluate(ctx context.Context, result *Result, domain string) (ResultType, error) {
 	result.DNSQueries++
 	var qtype uint16
@@ -258,7 +258,6 @@ func (m MechanismPTR) String() string {
 }
 
 // MechanismPtr.Evaluate is in ptr.go
-
 
 // 5.6.  "ip4" and "ip6"
 //
@@ -346,7 +345,6 @@ func (m MechanismExists) Evaluate(ctx context.Context, result *Result, domain st
 func (m MechanismExists) String() string {
 	return mechanismString(m.Qualifier, "exists", m.DomainSpec, net.IPMask{}, net.IPMask{})
 }
-
 
 //   ip4-cidr-length  = "/" ("0" / %x31-39 0*1DIGIT) ; value range 0-32
 //   ip6-cidr-length  = "/" ("0" / %x31-39 0*2DIGIT) ; value range 0-128
@@ -554,11 +552,11 @@ func NewMechanism(raw string) (Mechanism, error) {
 
 // ResultChar maps between the spf.ResultType and the equivalent single character
 // qualifier used in SPF text format.
-var ResultChar=map[ResultType]string{
-	None: "",
-	Neutral: "?",
-	Pass: "",
-	Fail: "-",
+var ResultChar = map[ResultType]string{
+	None:     "",
+	Neutral:  "?",
+	Pass:     "",
+	Fail:     "-",
 	Softfail: "~",
 }
 
@@ -575,7 +573,7 @@ func mechanismString(qualifier ResultType, name string, parameter string, mask4,
 	}
 
 	ones, bits := mask4.Size()
-	if bits != 0 && ones !=32{
+	if bits != 0 && ones != 32 {
 		sb.WriteString("/")
 		sb.WriteString(strconv.Itoa(ones))
 	}
