@@ -60,6 +60,15 @@ func NewChecker() *Checker {
 // spf.Check function.
 var DefaultChecker *Checker
 
+// ValidateSPF checks SPF policy for a message using both smtp.mailfrom and smtp.helo.
+func ValidateSPF(ctx context.Context, ip net.IP, record, domain string) (ResultType, string) {
+	if DefaultChecker == nil {
+		DefaultChecker = NewChecker()
+	}
+	result := DefaultChecker.CheckHost(ctx, ip, record, domain, "", "")
+	return result.Type, result.Explanation
+}
+
 // Check checks SPF policy for a message using both smtp.mailfrom and smtp.helo.
 func Check(ctx context.Context, ip net.IP, mailFrom string, helo string) (ResultType, string) {
 	if DefaultChecker == nil {
